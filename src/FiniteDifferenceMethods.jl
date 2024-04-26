@@ -1,5 +1,6 @@
 module FiniteDifferenceMethods
 
-# Write your package code here.
+using LinearAlgebra,
+      SparseArrays
 
 end
