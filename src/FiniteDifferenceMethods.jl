@@ -9,9 +9,14 @@ import Base: convert,
 
 export spacing,
        collocated,
-       laplacian
+       staggered,
+       laplacian,
+       Gradient
 
+include("aliases.jl")
+include("utils.jl")
 include("mesh.jl")
 include("laplacian.jl")
+include("gradient.jl")
 
 end
