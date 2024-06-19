@@ -78,3 +78,14 @@ function getindex(this::Grad{:x,:γ,1,T}, i::CartInd{1}, j::CartInd{1}) where {T
         zero(T)
     end
 end
+
+getindex(this::Grad, inds) =
+    getindex(this, inds.indices...)
+
+function getindex(this::Grad{X,V,M,T,A,R,C,N}, inds::Vararg{OrdinalRange{Int},N}) where {X,V,M,T,A,R,C,N}
+    row, col = CartInds(inds[1:M]), CartInds(inds[M+1:N])
+    getindex(this, row, col)
+end
+
+getindex(this::Grad{X,V,M}, row::CartInds{M}, col::CartInds{M}) where {X,V,M} =
+    Grad{X,V}(moments(this), getindex(rowinds(this), row), getindex(colinds(this), col))
