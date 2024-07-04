@@ -1,3 +1,4 @@
+#=
 """
 
 - `X`: component of the gradient (`:x`, `:y` or `:z`...),
@@ -274,3 +275,64 @@ function _convert(A::Type{<:SparseMatrixCSC{T,I}}, op::Grad{:x,V,1}) where {T,I,
 
     SparseMatrixCSC(m, n, colptr, rowval, nzval)
 end
+
+=#
+
+"""
+
+!!! note
+
+    First order operator.
+
+"""
+struct Gradient{S,T} <: Operator end
+
+const Grad = Gradient
+
+Grad(::Type{S}, ::Type{T}) where {S<:CoordinateStyle,T<:ContributionStyle} = Grad{S,T}()
+
+CoordinateStyle(::Type{Grad{S,T}}) where {S,T} = S()
+ContributionStyle(::Type{Grad{S,T}}) where {S,T} = T()
+
+# T denotes to bulk temperature
+function (op::Grad{X,Ω})(ind::CartesianIndex{1}, (T, _, B, W)::Vararg{AVec,4})
+    i, = Tuple(ind)
+    (B[i] * T[i] - B[i-1] * T[i-1]) * pseudoinv(W[i])
+end
+
+# T denotes boundary temperature
+function (op::Grad{X,Γ})(ind::CartesianIndex{1}, (T, A, B, W)::Vararg{AVec,4})
+    i, = Tuple(ind)
+    ((A[i] - B[i]) * T[i] + (B[i-1] - A[i]) * T[i-1]) * pseudoinv(W[i])
+end
+
+# jacobian
+
+OperatorSparsity(::Type{J}) where {P,O<:Grad,J<:∂{P,O}} = HasStencil()
+stencil(::∂{1,O}) where {D,O<:Grad{D}} = LinearStencil{D}(SURange{-1,2}())
+
+## access by row
+#(op::∂{1,Grad{X,Ω}})((i,)::Dims{1}, _::Tup{SInt{-1}}, (_, _, B, W)::Varg{AVec,4}) =
+#    -B[i-1] * pseudoinv(W[i])
+#
+#(op::∂{1,Grad{X,Ω}})((i,)::Dims{1}, _::Tup{SInt{0}}, (_, _, B, W)::Varg{AVec,4}) =
+#    +B[i] * pseudoinv(W[i])
+#
+#(op::∂{1,Grad{X,Γ}})((i,)::Dims{1}, _::Tup{SInt{-1}}, (_, A, B, W)::Varg{AVec,4}) =
+#    (B[i-1] - A[i]) * pseudoinv(W[i])
+#
+#(op::∂{1,Grad{X,Γ}})((i,)::Dims{1}, _::Tup{SInt{0}}, (_, A, B, W)::Varg{AVec,4}) =
+#    (A[i] - B[i]) * pseudoinv(W[i])
+#
+# access by column
+(op::∂{1,Grad{X,Ω}})(::Tup{SInt{-1}}, (j,)::Dims{1}, (_, _, B, W)::Varg{AVec,4}) =
+    -B[j] * pseudoinv(W[j+1])
+
+(op::∂{1,Grad{X,Ω}})(::Tup{SInt{0}}, (j,)::Dims{1}, (_, _, B, W)::Varg{AVec,4}) =
+    +B[j] * pseudoinv(W[j])
+
+(op::∂{1,Grad{X,Γ}})(::Tup{SInt{-1}}, (j,)::Dims{1}, (_, A, B, W)::Varg{AVec,4}) =
+    (B[j] - A[j+1]) * pseudoinv(W[j+1])
+
+(op::∂{1,Grad{X,Γ}})(::Tup{SInt{0}}, (j,)::Dims{1}, (_, A, B, W)::Varg{AVec,4}) =
+    (A[j] - B[j]) * pseudoinv(W[j])

@@ -1,3 +1,7 @@
+const Tup = Tuple
+const Varg = Vararg
+
+const NTup = NTuple
 const TupleN{T,N} = NTuple{N,T}
 const NColon{N} = NTuple{N,Colon}
 
@@ -11,3 +15,7 @@ const AURange = AbstractUnitRange
 
 const CartInd = CartesianIndex
 const CartInds = CartesianIndices
+
+const SURange = StaticArrays.SUnitRange
+
+const SInt = StaticInt
